@@ -1,0 +1,7 @@
+{
+    "launch_params": {
+        "Gui": false,
+        "Cmd": true,
+        "Test": false
+    }
+}
