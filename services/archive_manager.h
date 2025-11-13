@@ -12,6 +12,7 @@
 #include <QDebug>
 #include <QDir>
 #include <QRegularExpression>
+#include <QCoreApplication>
 
 struct ZipEntry;
 
@@ -40,7 +41,7 @@ signals:
 private:
     int m_filesCount;
     int m_clusterCounter;
-    QString m_targetWords;
+    QString m_targetWord;
     QString m_path;
     QString m_saveDir;
 };

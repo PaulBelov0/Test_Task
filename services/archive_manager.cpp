@@ -46,7 +46,7 @@ void ArchiveManager::filesCounter()
     if (!file.open(QIODevice::ReadOnly))
     {
         qWarning() << "Cannot open file:" << m_path;
-        return false;
+        return;
     }
 
     const QByteArray zipSignature = "PK\x03\x04";
@@ -84,8 +84,9 @@ void ArchiveManager::filesCounter()
 
 bool ArchiveManager::processZip()
 {
-    const int FILENAME_LENGTH_OFFSET = 26;
-    const int FILENAME_OFFSET = 30;
+    // Constants from official ZIP specifications
+    const int FILENAME_LENGTH_OFFSET = 26;  // 2 bytes
+    const int FILENAME_OFFSET = 30;        // Start of filename
 
     QFile file(m_path);
     if (!file.open(QIODevice::ReadOnly))
@@ -111,9 +112,18 @@ bool ArchiveManager::processZip()
             nextHeaderPos = data.size();
         }
 
+        QString filename = "unknown";
         if (pos + FILENAME_OFFSET < data.size())
         {
-            m_filesCount++;
+            quint16 fileNameLength = *reinterpret_cast<const quint16*>(
+                data.constData() + pos + FILENAME_LENGTH_OFFSET);
+
+            if (pos + FILENAME_OFFSET + fileNameLength <= data.size())
+            {
+                filename = QString::fromLatin1(
+                    data.constData() + pos + FILENAME_OFFSET,
+                    fileNameLength);
+            }
         }
 
         QByteArray chunk = data.mid(start, nextHeaderPos - start);
@@ -121,13 +131,8 @@ bool ArchiveManager::processZip()
         if (chunk.contains(m_targetWord.toUtf8()))
         {
             qDebug() << "✅ File" << filename << "contains" << m_targetWord;
-
-            if (saveFile(filename, chunk))
-            {
-                found = true;
-                qDebug() << "✅ Saved:" << filename;
-            }
             found = true;
+            saveFile(filename, chunk);
         }
         else
         {
@@ -141,6 +146,7 @@ bool ArchiveManager::processZip()
     {
         qDebug() << "Target word not found in any file of archive:" << m_path;
     }
+
     return found;
 }
 
