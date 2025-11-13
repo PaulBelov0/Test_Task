@@ -16,6 +16,10 @@ set(PROJECT_SOURCES
         main.cpp
         ui/mainwindow.cpp
         ui/mainwindow.h
+        archive_core/archive_manager.cpp
+        archive_core/archive_manager.h
+        archive_core/archiver_pipeline.cpp
+        archive_core/archiver_pipeline.h
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
@@ -23,7 +27,6 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
         resources.qrc
-        archive_core/archive_manager.cpp archive_core/archive_manager.h archive_core/archiver_pipeline.cpp archive_core/archiver_pipeline.h
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET Test APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
