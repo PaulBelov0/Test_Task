@@ -1,11 +1,19 @@
 #include "archiver_pipeline.h"
 
-ArchiverPipeline::ArchiverPipeline(QObject *parent)
+ArchiverPipeline::ArchiverPipeline(QObject* parent)
     : QObject{parent}
     , m_archive(new ArchiveManager(this))
 {
     connect(this, &ArchiverPipeline::onSaveDirSet, this, &ArchiverPipeline::startProcessing);
-    connect(m_archive.get(), &ArchiveManager::onProcessingFinished, this, &ArchiverPipeline::onProcessingDone);
+}
+
+ArchiverPipeline::ArchiverPipeline(int argc, char* argv[], QObject* parent)
+    : QObject{parent}
+    , m_archive(new ArchiveManager(this))
+{
+    m_archive->setPath(argv[1]);
+    m_archive->setSaveDir(argv[2]);
+    m_archive->processZip();
 }
 
 void ArchiverPipeline::startProcessing()
@@ -13,7 +21,7 @@ void ArchiverPipeline::startProcessing()
     m_archive->processZip();
 }
 
-void ArchiverPipeline::setPathToRead(const std::string& path)
+void ArchiverPipeline::setPathToRead(const QString& path)
 {
     bool isDone = checkPathToRead(path);
 
@@ -24,7 +32,7 @@ void ArchiverPipeline::setPathToRead(const std::string& path)
     }
 }
 
-void ArchiverPipeline::setPathToSave(const std::string& path)
+void ArchiverPipeline::setPathToSave(const QString& path)
 {
     if (!checkPathToSave(path))
         return;
@@ -33,10 +41,10 @@ void ArchiverPipeline::setPathToSave(const std::string& path)
     emit onSaveDirSet();
 }
 
-bool ArchiverPipeline::checkPathToSave(const std::string& path)
+bool ArchiverPipeline::checkPathToSave(const QString& path)
 {
     std::error_code ec;
-    std::filesystem::path pathStr(path);
+    std::filesystem::path pathStr(path.toStdString());
 
     bool exists = std::filesystem::exists(pathStr, ec);
     if (ec || !exists)
@@ -54,7 +62,7 @@ bool ArchiverPipeline::checkPathToSave(const std::string& path)
         return false;
     }
 
-    bool isEmpty = std::filesystem::is_empty(path, ec);
+    bool isEmpty = std::filesystem::is_empty(path.toStdString(), ec);
     if (!isEmpty)
     {
         std::cout << "Папка не является пустой!" << std::endl;
@@ -65,12 +73,12 @@ bool ArchiverPipeline::checkPathToSave(const std::string& path)
     return true;
 }
 
-bool ArchiverPipeline::checkPathToRead(const std::string& path) {
+bool ArchiverPipeline::checkPathToRead(const QString& path) {
 
-    std::filesystem::path fsPath(path);
+    std::filesystem::path fsPath(path.toStdString());
 
     bool exists = std::filesystem::exists(fsPath);
-    bool isFile = exists && std::filesystem::is_regular_file(path);
+    bool isFile = exists && std::filesystem::is_regular_file(path.toStdString());
     bool isZip = isFile && isZipFile(fsPath);
 
     if (!exists)
@@ -91,6 +99,7 @@ bool ArchiverPipeline::checkPathToRead(const std::string& path) {
         emit onFileDirectoryWrong();
         return false;
     }
+    QCoreApplication::exit(0);
     return true;
 }
 

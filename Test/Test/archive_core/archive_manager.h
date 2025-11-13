@@ -14,38 +14,48 @@
 #include <QRegularExpression>
 #include <QCoreApplication>
 
-struct ZipEntry;
-
 class ArchiveManager : public QObject
 {
     Q_OBJECT
-public:
-    explicit ArchiveManager(QString& path, QObject* parent = nullptr);
-    explicit ArchiveManager(QObject* parent = nullptr);
-    ArchiveManager(QString& filePath, QString& saveDir, QObject *parent);
 
+public:
+    explicit ArchiveManager(QString path, QObject* parent = nullptr);
+
+    explicit ArchiveManager(QObject* parent = nullptr);
+
+    ArchiveManager(QString filePath, QString saveDir, QObject *parent = nullptr);
+
+    void setPath(const QString& path);
+    void setSaveDir(const QString& dir);
+
+    /**
+     * @brief Основной метод обработки ZIP-архива.
+     * @return true, если целевое слово найдено хотя бы в одном файле.
+     */
     bool processZip();
 
-    void setPath(const std::string& path);
-    bool saveFile(const QString& filename, const QByteArray& content);
-
-public slots:
-    void setSaveDir(const std::string& dir);
-    void filesCounter();
-
 signals:
-    void onFileReaded(QString& filename);
     void onSaveDirectorySet();
-    void onProcessingFinished();
+    void fileFound(const QString& filename);
+    void finished();
 
 private:
-    int m_filesCount;
-    int m_clusterCounter;
+    /**
+     * @brief Вспомогательная функция для безопасного чтения 16-битного
+     * целого числа в формате Little Endian из QByteArray.
+     */
+    quint16 readInt16(const QByteArray& data, int offset);
+
+    /**
+     * @brief Сохраняет содержимое файла в указанную директорию.
+     * Реализует базовую очистку имени файла для безопасности.
+     */
+    bool saveFile(const QString& filename, const QByteArray& content);
+
     QString m_targetWord;
     QString m_path;
     QString m_saveDir;
 };
-
 
 
 #pragma pack(push, 1)  // Выравнивание 1 байт
