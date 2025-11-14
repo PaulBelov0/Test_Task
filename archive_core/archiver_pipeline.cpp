@@ -1,44 +1,33 @@
 #include "archiver_pipeline.h"
 
-ArchiverPipeline::ArchiverPipeline(QObject* parent)
+ArchiverPipeline::ArchiverPipeline(QString zipPath, LaunchType lType, QObject* parent)
     : QObject{parent}
-    , m_archive(new ArchiveManager(this))
+    , m_archive(new ArchiveManager(lType, this))
 {
-    connect(this, &ArchiverPipeline::onSaveDirSet, this, &ArchiverPipeline::startProcessing);
+    m_archive->setPath(zipPath);
+    m_archive->processZip();
 }
 
-ArchiverPipeline::ArchiverPipeline(int argc, char* argv[], QObject* parent)
+ArchiverPipeline::ArchiverPipeline(int argc, char* argv[], LaunchType lType, QObject* parent)
     : QObject{parent}
-    , m_archive(new ArchiveManager(this))
+    , m_archive(new ArchiveManager(lType, this))
 {
-    m_archive->setPath(argv[1]);
-    m_archive->setSaveDir(argv[2]);
-    m_archive->processZip();
+    if (checkPathToRead(argv[1]))
+    {
+        m_archive->setPath(argv[1]);
+        m_archive->setSaveDir(argv[2]);
+        m_archive->processZip();
+        m_archive->compressTempDirWithSystemZip();
+
+    }
+    connect(m_archive.get(), &ArchiveManager::finished, m_archive.get(), [this, argv]{
+        qDebug() << "CALL";
+    });
 }
 
 void ArchiverPipeline::startProcessing()
 {
     m_archive->processZip();
-}
-
-void ArchiverPipeline::setPathToRead(const QString& path)
-{
-    bool isDone = checkPathToRead(path);
-
-    if (isDone)
-    {
-        m_archive->setPath(path);
-        emit onFileDetectedSuccessful();
-    }
-}
-
-void ArchiverPipeline::setPathToSave(const QString& path)
-{
-    if (!checkPathToSave(path))
-        return;
-
-    m_archive->setSaveDir(path);
-    emit onSaveDirSet();
 }
 
 bool ArchiverPipeline::checkPathToSave(const QString& path)
@@ -58,14 +47,6 @@ bool ArchiverPipeline::checkPathToSave(const QString& path)
     if (ec || !is_dir)
     {
         std::cout << "Данный путь не является директорией!" << std::endl;
-        emit onSaveDirecroryWrong();
-        return false;
-    }
-
-    bool isEmpty = std::filesystem::is_empty(path.toStdString(), ec);
-    if (!isEmpty)
-    {
-        std::cout << "Папка не является пустой!" << std::endl;
         emit onSaveDirecroryWrong();
         return false;
     }
@@ -112,4 +93,16 @@ bool ArchiverPipeline::isZipFile(const std::filesystem::path& path)
                    [](unsigned char c){ return std::tolower(c); });
 
     return ext == ".zip";
+}
+
+void ArchiverPipeline::setPathToSave(const QString& path)
+{
+    if (checkPathToSave(path))
+        m_archive->setSaveDir(path);
+}
+
+void ArchiverPipeline::saveFile(const QString& path)
+{
+    if (checkPathToSave(path))
+        m_archive->saveFile(path);
 }

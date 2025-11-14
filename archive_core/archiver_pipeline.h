@@ -15,8 +15,8 @@ class ArchiverPipeline : public QObject
 {
     Q_OBJECT
 public:
-    explicit ArchiverPipeline(QObject* parent = nullptr);
-    explicit ArchiverPipeline(int argc, char* argv[], QObject* parent = nullptr);
+    explicit ArchiverPipeline(QString zipPath, LaunchType lType, QObject* parent = nullptr);
+    explicit ArchiverPipeline(int argc, char* argv[], LaunchType lType, QObject* parent = nullptr);
 
     void startProcessing();
 
@@ -30,8 +30,9 @@ signals:
     void onSaveDirSet();
 
 public slots:
-    void setPathToRead(const QString& path);
+    // void setPathToRead(const QString& path);
     void setPathToSave(const QString& path);
+    void saveFile(const QString& path);
 
 private:
     bool checkPathToSave(const QString& path);

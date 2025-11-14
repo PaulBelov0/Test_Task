@@ -2,6 +2,7 @@
 #define ARCHIVE_MANAGER_H
 
 #include <string>
+#include <cstdlib>
 
 #include <QObject>
 #include <QFile>
@@ -13,50 +14,8 @@
 #include <QDir>
 #include <QRegularExpression>
 #include <QCoreApplication>
-
-class ArchiveManager : public QObject
-{
-    Q_OBJECT
-
-public:
-    explicit ArchiveManager(QString path, QObject* parent = nullptr);
-
-    explicit ArchiveManager(QObject* parent = nullptr);
-
-    ArchiveManager(QString filePath, QString saveDir, QObject *parent = nullptr);
-
-    void setPath(const QString& path);
-    void setSaveDir(const QString& dir);
-
-    /**
-     * @brief Основной метод обработки ZIP-архива.
-     * @return true, если целевое слово найдено хотя бы в одном файле.
-     */
-    bool processZip();
-
-signals:
-    void onSaveDirectorySet();
-    void fileFound(const QString& filename);
-    void finished();
-
-private:
-    /**
-     * @brief Вспомогательная функция для безопасного чтения 16-битного
-     * целого числа в формате Little Endian из QByteArray.
-     */
-    quint16 readInt16(const QByteArray& data, int offset);
-
-    /**
-     * @brief Сохраняет содержимое файла в указанную директорию.
-     * Реализует базовую очистку имени файла для безопасности.
-     */
-    bool saveFile(const QString& filename, const QByteArray& content);
-
-    QString m_targetWord;
-    QString m_path;
-    QString m_saveDir;
-};
-
+#include <QTemporaryDir>
+#include <QProcess>
 
 #pragma pack(push, 1)  // Выравнивание 1 байт
 struct ZipLocalFileHeader {
@@ -77,10 +36,63 @@ struct ZipLocalFileHeader {
 struct ZipEntry
 {
     QString filename;
-    bool isCompressed;
-    quint32 compressedSize;
-    quint32 uncompressedSize;
-    quint32 localHeaderOffset;
+    quint32 size;
+    qint64 dataOffset;
+    uint32_t crc32;
 };
+
+enum class LaunchType
+{
+    GUI,
+    CLI,
+    Tests
+};
+
+class ArchiveManager : public QObject
+{
+    Q_OBJECT
+
+public:
+    ArchiveManager(QString path, LaunchType lType, QObject* parent = nullptr);
+
+    explicit ArchiveManager(LaunchType lType, QObject* parent = nullptr);
+
+    ArchiveManager(QString filePath, QString saveDir, QObject *parent = nullptr);
+
+    void setPath(const QString& path);
+    void setSaveDir(const QString& dir);
+
+    /**
+     * @brief Основной метод обработки ZIP-архива.
+     * @return true, если целевое слово найдено хотя бы в одном файле.
+     */
+    bool processZip();
+
+signals:
+    void onSaveDirectorySet();
+    void fileFound(const QString& filename);
+    void finished();
+
+public slots:
+    /**
+     * @brief Сохраняет содержимое файла в указанную директорию.
+     * Реализует базовую очистку имени файла для безопасности.
+     */
+    bool saveFile(const QString&  saveDirPath);
+    bool saveFile(const QString& filename, const QByteArray& content);
+
+    bool compressTempDirWithSystemZip();
+private:
+    bool saveFilteredFilesToTemp(QTemporaryDir& dir);
+
+    QString m_targetWord;
+    QString m_path;
+    QString m_saveDir;
+    QString m_folderName;
+
+    LaunchType m_launch;
+    QVector<ZipEntry> m_acceptFilesData;
+};
+
 
 #endif // ARCHIVE_MANAGER_H

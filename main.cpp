@@ -6,11 +6,13 @@
 #include <QJsonObject>
 #include <QFile>
 #include <QCoreApplication>
+#include <QFileDialog>
 
 int main(int argc, char *argv[])
 {
     QFile file = QFile(":/config");
-    if (!file.open(QIODevice::ReadOnly)) {
+    if (!file.open(QIODevice::ReadOnly))
+    {
         qDebug() << "Ошибка открытия файла:" << file.errorString();
     }
 
@@ -23,18 +25,11 @@ int main(int argc, char *argv[])
     bool cmdEnabled = params["Cmd"].toBool();
     bool testEnabled = params["Test"].toBool();
 
-    if (guiEnabled)
-    {
-        QApplication a(argc, argv);
-        MainWindow w;
-        w.show();
-        return a.exec();
-    }
-    else if (cmdEnabled)
+    if (cmdEnabled)
     {
         QCoreApplication a(argc, argv);
-        ArchiverPipeline arhc(argc, argv);
-
+        ArchiverPipeline arhc(argc, argv, LaunchType::CLI);
+        qDebug() << "finished";
         return a.exec();
     }
     else if (testEnabled)
@@ -45,7 +40,7 @@ int main(int argc, char *argv[])
     else
     {
         QApplication a(argc, argv);
-        MainWindow w;
+        MainWindow w(QFileDialog::getOpenFileName(nullptr, "Выберете .zip", QDir::homePath(), "Zip Files(*.zip)", nullptr), LaunchType::GUI, nullptr);
         w.show();
         return a.exec();
     }
