@@ -21,7 +21,6 @@ int main(int argc, char *argv[])
     QJsonObject root = cfg.object();
     QJsonObject params = root["launch_params"].toObject();
 
-    bool guiEnabled = params["Gui"].toBool();
     bool cmdEnabled = params["Cmd"].toBool();
     bool testEnabled = params["Test"].toBool();
 

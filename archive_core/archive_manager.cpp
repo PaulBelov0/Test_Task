@@ -45,11 +45,12 @@ void ArchiveManager::setSaveDir(const QString& dir)
 
 bool ArchiveManager::processZip()
 {
+    emit onCurrentStageChanged("Анализ архива");
     const uint32_t ZIP_LOCAL_FILE_SIGNATURE = 0x04034B50; // PK\x03\x04
     const quint16 COMPRESSION_STORED = 0;
 
-    QFile file(m_path);
-    if (!file.open(QIODevice::ReadOnly))
+    m_file.setFileName(m_path);
+    if (!m_file.open(QIODevice::ReadOnly))
     {
         qWarning() << "Cannot open file:" << m_path;
         return false;
@@ -57,15 +58,15 @@ bool ArchiveManager::processZip()
 
     bool found = false;
     qint64 currentPos = 0;
-    qint64 fileSize = file.size();
+    qint64 fileSize = m_file.size();
 
     QByteArray headerBuffer(sizeof(ZipLocalFileHeader), 0);
 
     while (currentPos < fileSize)
     {
-        file.seek(currentPos);
+        m_file.seek(currentPos);
 
-        qint64 bytesRead = file.read(headerBuffer.data(), sizeof(ZipLocalFileHeader));
+        qint64 bytesRead = m_file.read(headerBuffer.data(), sizeof(ZipLocalFileHeader));
         if (bytesRead != sizeof(ZipLocalFileHeader)) {
             break;
         }
@@ -78,12 +79,12 @@ bool ArchiveManager::processZip()
             QByteArray searchChunk;
             const int CHUNK_SIZE = 4096; // Размер буфера для поиска сигнатуры
 
-            file.seek(currentPos);
+            m_file.seek(currentPos);
 
             bool signatureFound = false;
-            while (file.bytesAvailable() > 0)
+            while (m_file.bytesAvailable() > 0)
             {
-                searchChunk = file.read(CHUNK_SIZE);
+                searchChunk = m_file.read(CHUNK_SIZE);
                 int relativeIndex = searchChunk.indexOf("PK\x03\x04");
                 if (relativeIndex != -1)
                 {
@@ -101,7 +102,7 @@ bool ArchiveManager::processZip()
         }
 
 
-        uint16_t compressionMethod = qFromLittleEndian(header->compression);
+        // uint16_t compressionMethod = qFromLittleEndian(header->compression);
         uint16_t fileNameLength = qFromLittleEndian(header->fileNameLength);
         uint16_t extraFieldLength = qFromLittleEndian(header->extraFieldLength);
         uint32_t compressedSize = qFromLittleEndian(header->compressedSize);
@@ -110,34 +111,40 @@ bool ArchiveManager::processZip()
         const qint64 extraFieldOffset = fileNameOffset + fileNameLength;
         const qint64 dataOffset = extraFieldOffset + extraFieldLength;
 
-        file.seek(fileNameOffset);
+        m_file.seek(fileNameOffset);
         QString filename;
         if (fileNameLength > 0) {
-            QByteArray nameBytes = file.read(fileNameLength);
+            QByteArray nameBytes = m_file.read(fileNameLength);
             filename = QString::fromUtf8(nameBytes);
         }
 
-        file.seek(dataOffset);
+        m_file.seek(dataOffset);
         QByteArray fileContent;
 
         if (compressedSize > 0) {
-            fileContent = file.read(compressedSize);
+            fileContent = m_file.read(compressedSize);
         }
 
 
         if (!fileContent.isEmpty() && fileContent.contains(m_targetWord.toUtf8()))
         {
-            // qDebug() << "File" << filename << "contains" << m_targetWord;
             found = true;
-            saveFile(filename, fileContent);//todo
-            // emit fileFound(filename);
+            if (m_launch == LaunchType::CLI)
+            {
+                saveFile(filename, fileContent);
+            }
+            else
+            {
+                m_acceptFiles.append(filename);
+                emit onAcceptibleFileAdded(filename);
+            }
         }
 
         currentPos = dataOffset + compressedSize;
     }
     qDebug() << "emit finished()";
     emit finished();
-    file.close();
+    m_file.close();
     return found;
 }
 
@@ -170,9 +177,11 @@ bool ArchiveManager::saveFile(const QString& filename, const QByteArray& content
     return true;
 }
 
-bool ArchiveManager::saveFile(const QString&  saveDirPath)
+bool ArchiveManager::saveFile(const QString&  saveDirPath, QVector<QString>* selectedFiles)
 {
-    if (m_acceptFilesData.isEmpty()) {
+    emit onCurrentStageChanged("Сохранение");
+
+    if (m_acceptFiles.isEmpty()) {
         qDebug() << "No files to archive.";
         return false;
     }
@@ -186,20 +195,16 @@ bool ArchiveManager::saveFile(const QString&  saveDirPath)
     QDir saveDir(m_saveDir + m_folderName);
     QString outputPath = saveDir.filePath("extracted.zip");
 
-    if (!saveFilteredFilesToTemp(tempDir)) {
-        return false;
-    }
+    if (!saveFilteredFilesToTemp(tempDir, selectedFiles)) return false;
 
-    if (!compressTempDirWithSystemZip()) {
-        return false;
-    }
+    if (!compressTempDirWithSystemZip()) return false;
 
     return true;
 }
 
-bool ArchiveManager::saveFilteredFilesToTemp(QTemporaryDir& tempDir)
+bool ArchiveManager::saveFilteredFilesToTemp(QTemporaryDir& tempDir, QVector<QString>* selectedFiles)
 {
-    if (m_acceptFilesData.isEmpty()) {
+    if (m_acceptFiles.isEmpty()) {
         qDebug() << "No files to save to temp directory.";
         return false;
     }
@@ -217,9 +222,9 @@ bool ArchiveManager::saveFilteredFilesToTemp(QTemporaryDir& tempDir)
 
     qDebug() << "Saving filtered files to temporary directory:" << tempDir.path();
 
-    for (const ZipEntry& entry : m_acceptFilesData)
+    for (const QString& filename : m_acceptFiles)
     {
-        QString fullPath = tempDir.filePath(entry.filename);
+        QString fullPath = tempDir.filePath(filename);
         QFileInfo fileInfo(fullPath);
         QDir().mkpath(fileInfo.path());
 
@@ -229,9 +234,9 @@ bool ArchiveManager::saveFilteredFilesToTemp(QTemporaryDir& tempDir)
             continue;
         }
 
-        inFile.seek(entry.dataOffset);
-        QByteArray content = inFile.read(entry.size);
-        outFile.write(content);
+        // m_file.seek(filename);
+        // QByteArray content = inFile.read(entry.size);
+        // outFile.write(content);
         outFile.close();
     }
 
@@ -247,10 +252,10 @@ bool ArchiveManager::compressTempDirWithSystemZip()
     QString outputZip = m_saveDir + m_folderName + ".zip";
 
 #ifdef _WIN32
-    command = "powershell -Command \"Compress-Archive -Path '" + m_saveDir + m_folderName + "/*' -DestinationPath '" + outputZip + "' -Force\" > nul 2>&1";
+    command = "powershell -Command \"Compress-Archive -Path '" + m_saveDir + m_folderName + "/*' -DestinationPath '" + outputZip + "' -Force\"";
     qDebug() << "Windows command:" << command;
 #else
-    command = "zip -r \"" + outputZip + "\" \"" + m_saveDir + m_folderName + "\" > /dev/null 2>&1";
+    command = "zip -r \"" + outputZip + "\" \"" + m_saveDir + m_folderName + "\"";
     qDebug() << "Linux command:" << command;
 #endif
 

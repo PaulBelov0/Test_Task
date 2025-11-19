@@ -62,10 +62,6 @@ public:
     void setPath(const QString& path);
     void setSaveDir(const QString& dir);
 
-    /**
-     * @brief Основной метод обработки ZIP-архива.
-     * @return true, если целевое слово найдено хотя бы в одном файле.
-     */
     bool processZip();
 
 signals:
@@ -73,17 +69,17 @@ signals:
     void fileFound(const QString& filename);
     void finished();
 
+// Signals for GUI
+    void onCurrentStageChanged(const QString& str);
+    void onAcceptibleFileAdded(const QString& str);
+
 public slots:
-    /**
-     * @brief Сохраняет содержимое файла в указанную директорию.
-     * Реализует базовую очистку имени файла для безопасности.
-     */
-    bool saveFile(const QString&  saveDirPath);
+    bool saveFile(const QString&  saveDirPath, QVector<QString>* selectedFiles);
     bool saveFile(const QString& filename, const QByteArray& content);
 
     bool compressTempDirWithSystemZip();
 private:
-    bool saveFilteredFilesToTemp(QTemporaryDir& dir);
+    bool saveFilteredFilesToTemp(QTemporaryDir& dir, QVector<QString>* selectedFiles);
 
     QString m_targetWord;
     QString m_path;
@@ -91,7 +87,8 @@ private:
     QString m_folderName;
 
     LaunchType m_launch;
-    QVector<ZipEntry> m_acceptFilesData;
+    QFile m_file;
+    QVector<QString> m_acceptFiles;
 };
 
 

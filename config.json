@@ -1,6 +1,6 @@
 {
     "launch_params": {
-        "Cmd": true,
+        "Cmd": false,
         "Test": false
     }
 }
