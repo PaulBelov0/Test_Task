@@ -5,7 +5,24 @@ ArchiverPipeline::ArchiverPipeline(QString zipPath, LaunchType lType, QObject* p
     , m_archive(new ArchiveManager(lType, this))
 {
     m_archive->setPath(zipPath);
-    m_archive->processZip();
+
+    connect(m_archive.get(), &ArchiveManager::onAcceptibleFileAdded, this, &ArchiverPipeline::onAcceptibleFileDetected);
+
+    connect(m_archive.get(), &ArchiveManager::onCurrentStageChanged, [this](const QString& str){
+        emit onCurrentStageChanged(str);
+    });
+
+    connect(m_archive.get(), &ArchiveManager::onErrorOccured, [this](const QString& err){
+        emit onErrorOccured(err);
+    });
+
+    connect(m_archive.get(), &ArchiveManager::onProgressGuiChanged, [this](long long val, long long max){
+        emit this->onProgressChanged(val, max);
+    });
+
+    connect(m_archive.get(), &ArchiveManager::onProgressMaxValueChanged, [this](long long max){
+        emit this->onProgressMaxChanged(max);
+    });
 }
 
 ArchiverPipeline::ArchiverPipeline(int argc, char* argv[], LaunchType lType, QObject* parent)
@@ -17,12 +34,11 @@ ArchiverPipeline::ArchiverPipeline(int argc, char* argv[], LaunchType lType, QOb
         m_archive->setPath(argv[1]);
         m_archive->setSaveDir(argv[2]);
         m_archive->processZip();
-        m_archive->compressTempDirWithSystemZip();
-
+        m_archive->saveFiles(argv[2]);
+        m_archive->compressDirectory();
     }
-    connect(m_archive.get(), &ArchiveManager::finished, m_archive.get(), [this, argv]{
-        qDebug() << "CALL";
-    });
+
+    connect(m_archive.get(), &ArchiveManager::onAcceptibleFileAdded, this, &ArchiverPipeline::onAcceptibleFileDetected);
 }
 
 void ArchiverPipeline::startProcessing()
@@ -101,8 +117,8 @@ void ArchiverPipeline::setPathToSave(const QString& path)
         m_archive->setSaveDir(path);
 }
 
-void ArchiverPipeline::saveFile(const QString& path)
+void ArchiverPipeline::saveFiles(const QString& path, const QStringList& selectedFiles)
 {
     if (checkPathToSave(path))
-        m_archive->saveFile(path);
+        m_archive->saveFiles(path, selectedFiles);
 }

@@ -3,6 +3,7 @@
 
 #include <string>
 #include <cstdlib>
+#include <chrono>
 
 #include <QObject>
 #include <QFile>
@@ -12,10 +13,21 @@
 #include <QByteArray>
 #include <QDebug>
 #include <QDir>
+#include <QStorageInfo>
 #include <QRegularExpression>
 #include <QCoreApplication>
+#include <QApplication>
 #include <QTemporaryDir>
 #include <QProcess>
+#include <QtEndian>
+#include <qminmax.h>
+#include <QRegularExpression>
+#include <QStorageInfo>
+#include <QMessageBox>
+#include <QThread>
+#include <QThreadPool>
+#include <QtConcurrent/QtConcurrent>
+#include <QAtomicInt>
 
 #pragma pack(push, 1)  // Выравнивание 1 байт
 struct ZipLocalFileHeader {
@@ -31,7 +43,6 @@ struct ZipLocalFileHeader {
     uint16_t fileNameLength;
     uint16_t extraFieldLength;
 };
-#pragma pack(pop)
 
 struct ZipEntry
 {
@@ -40,6 +51,8 @@ struct ZipEntry
     qint64 dataOffset;
     uint32_t crc32;
 };
+#pragma pack(pop)
+
 
 enum class LaunchType
 {
@@ -67,29 +80,40 @@ public:
 signals:
     void onSaveDirectorySet();
     void fileFound(const QString& filename);
-    void finished();
 
 // Signals for GUI
+    void onProgressChanged(int, qsizetype);
+    void onAcceptibleFileAdded(const QString& str, quint64 fileSize, QDateTime timestamp);
     void onCurrentStageChanged(const QString& str);
-    void onAcceptibleFileAdded(const QString& str);
+    void onStageFinished(const QString& str);
+    void onProgressGuiChanged(long long val, long long max);
+    void onProgressMaxValueChanged(long long max);
+
+    void onErrorOccured(const QString& err);
 
 public slots:
-    bool saveFile(const QString&  saveDirPath, QVector<QString>* selectedFiles);
-    bool saveFile(const QString& filename, const QByteArray& content);
+    bool saveFiles(const QString&  saveDirPath, const QStringList& selectedFiles);
+    bool saveFiles(const QString&  saveDirPath);
+    void cancelProcessing() { m_shouldStop = true; }
 
-    bool compressTempDirWithSystemZip();
+    bool compressDirectory();
 private:
-    bool saveFilteredFilesToTemp(QTemporaryDir& dir, QVector<QString>* selectedFiles);
+    bool saveFilteredFilesToTemp(QTemporaryDir& dir, const QStringList& selectedFiles);
+    bool saveFilteredFilesDirectToZip(const QStringList& selectedFiles, const QString& outputPath);
+    inline QDateTime convertDosDateTime(uint16_t modDate, uint16_t modTime);
+    bool checkDiskSpaceWithCompression(const QString& savePath, double compressionRatio = 1.5);
+
+    bool m_shouldStop = false;
 
     QString m_targetWord;
     QString m_path;
     QString m_saveDir;
     QString m_folderName;
+    QString m_compressingPath;
 
     LaunchType m_launch;
     QFile m_file;
-    QVector<QString> m_acceptFiles;
+    QMap<QString, std::pair<quint64, quint64>> m_fileMap; // filename | position, size
 };
-
 
 #endif // ARCHIVE_MANAGER_H

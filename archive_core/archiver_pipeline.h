@@ -25,14 +25,21 @@ signals:
     void onSaveDirecroryWrong();
     void onFileReaded();
     void onFileSaved();
-    void onFileDetectedSuccessful();
+    void onAcceptibleFileDetected(const QString& str, quint64 fileSize, QDateTime timestamp);
     void onProcessingDone();
     void onSaveDirSet();
+
+    //For GUI
+    void onCurrentStageChanged(const QString& str);
+    void onProgressChanged(long long val, long long max);
+    void onProgressMaxChanged(long long max);
+    void onErrorOccured(const QString& err);
 
 public slots:
     // void setPathToRead(const QString& path);
     void setPathToSave(const QString& path);
-    void saveFile(const QString& path);
+    // void saveFile(const QString& path);
+    void saveFiles(const QString& path, const QStringList& selectedFiles);
 
 private:
     bool checkPathToSave(const QString& path);

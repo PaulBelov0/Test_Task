@@ -1,5 +1,5 @@
-#ifndef MAINWINDOW_H
-#define MAINWINDOW_H
+#ifndef MAIN_WINDOW_H
+#define MAIN_WINDOW_H
 
 #include <QMainWindow>
 #include <QPointer>
@@ -11,6 +11,9 @@
 #include <QGridLayout>
 #include <QVBoxLayout>
 #include <QListView>
+#include <QFileDialog>
+#include <QMessageBox>
+#include <QIcon>
 
 #include <memory>
 
@@ -24,6 +27,7 @@ class MainWindow : public QMainWindow
 
 public:
     MainWindow(const QString& zipPath, LaunchType lType, QWidget* parent = nullptr);
+    void startZipProcessing();
 
 private:
     QPointer<QTabWidget> m_mainWidget;
@@ -31,4 +35,4 @@ private:
 
     std::shared_ptr<ArchiverPipeline> m_archiverPipeline;
 };
-#endif // MAINWINDOW_H
+#endif // MAIN_WINDOW_H

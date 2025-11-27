@@ -9,13 +9,13 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Concurrent)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Concurrent)
 
 set(PROJECT_SOURCES
         main.cpp
-        ui/mainwindow.cpp
-        ui/mainwindow.h
+        ui/main_window.cpp
+        ui/main_window.h
         archive_core/archive_manager.cpp
         archive_core/archive_manager.h
         archive_core/archiver_pipeline.cpp
@@ -23,8 +23,8 @@ set(PROJECT_SOURCES
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
-    find_package(Qt6 REQUIRED COMPONENTS Widgets)
-find_package(Qt6 REQUIRED COMPONENTS Widgets)
+    find_package(Qt6 REQUIRED COMPONENTS Widgets Concurrent)
+find_package(Qt6 REQUIRED COMPONENTS Widgets Concurrent)
 
     qt_add_executable(Test
         MANUAL_FINALIZATION
@@ -34,6 +34,9 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets)
         ui/tab_items/summary_tab.cpp
         ui/tab_items/files_tab.h ui/tab_items/files_tab.cpp
         ui/expandable_widget.h ui/expandable_widget.cpp
+        ui/models/table_model.h ui/models/table_model.cpp
+        ui/table_view.h ui/table_view.cpp
+        structures/file_data.h
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET Test APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
@@ -53,9 +56,7 @@ else()
     endif()
 endif()
 
-target_link_libraries(Test PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
-target_link_libraries(Test PRIVATE Qt6::Widgets)
-target_link_libraries(Test PRIVATE Qt6::Widgets)
+target_link_libraries(Test PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Concurrent)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an
