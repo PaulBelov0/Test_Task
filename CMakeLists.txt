@@ -9,61 +9,74 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Concurrent)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Concurrent)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Concurrent Test)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Concurrent Test)
 
 set(PROJECT_SOURCES
-        main.cpp
-        ui/main_window.cpp
-        ui/main_window.h
-        archive_core/archive_manager.cpp
-        archive_core/archive_manager.h
-        archive_core/archiver_pipeline.cpp
-        archive_core/archiver_pipeline.h
+        src/main.cpp
+        src/ui/main_window.cpp
+        src/ui/main_window.h
+        src/archive_core/archive_manager.cpp
+        src/archive_core/archive_manager.h
+        src/archive_core/archiver_pipeline.cpp
+        src/archive_core/archiver_pipeline.h
+)
+
+set(TEST_SOURCES
+    tests/unit_test_runner.cpp
+    tests/test_archive_manager.cpp
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
-    find_package(Qt6 REQUIRED COMPONENTS Widgets Concurrent)
-find_package(Qt6 REQUIRED COMPONENTS Widgets Concurrent)
+    find_package(Qt6 REQUIRED COMPONENTS Widgets Concurrent Test)
 
     qt_add_executable(Test
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
-        resources.qrc
-        ui/tab_items/summary_tab.h
-        ui/tab_items/summary_tab.cpp
-        ui/tab_items/files_tab.h ui/tab_items/files_tab.cpp
-        ui/expandable_widget.h ui/expandable_widget.cpp
-        ui/models/table_model.h ui/models/table_model.cpp
-        ui/table_view.h ui/table_view.cpp
-        structures/file_data.h
+        ${TEST_SOURCES}
+        src/resources.qrc
+        src/ui/tab_items/summary_tab.h
+        src/ui/tab_items/summary_tab.cpp
+        src/ui/tab_items/files_tab.h
+        src/ui/tab_items/files_tab.cpp
+        src/ui/widgets/expandable_widget.h
+        src/ui/widgets/expandable_widget.cpp
+        src/ui/models/table_model.h
+        src/ui/models/table_model.cpp
+        src/ui/widgets/table_view.h
+        src/ui/widgets/table_view.cpp
+        src/structures/file_data.h
+        tests/unit_test_runner.h
+        tests/test_archive_manager.h
+        tests/test_archiver_pipeline.h tests/test_archiver_pipeline.cpp
+        tests/test_table_model.h tests/test_table_model.cpp
     )
-# Define target properties for Android with Qt 6 as:
-#    set_property(TARGET Test APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
-#                 ${CMAKE_CURRENT_SOURCE_DIR}/android)
-# For more information, see https://doc.qt.io/qt-6/qt-add-executable.html#target-creation
+
 else()
     if(ANDROID)
         add_library(Test SHARED
             ${PROJECT_SOURCES}
+            ${TEST_SOURCES}
         )
-# Define properties for Android with Qt 5 after find_package() calls as:
-#    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
     else()
         add_executable(Test
             ${PROJECT_SOURCES}
+            ${TEST_SOURCES}
         )
     endif()
 endif()
 
-target_link_libraries(Test PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Concurrent)
+target_link_libraries(Test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Concurrent
+    Qt${QT_VERSION_MAJOR}::Test
+)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
-# If you are developing for iOS or macOS you should consider setting an
-# explicit, fixed bundle identifier manually though.
 if(${QT_VERSION} VERSION_LESS 6.1.0)
   set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.example.Test)
 endif()
+
 set_target_properties(Test PROPERTIES
     ${BUNDLE_ID_OPTION}
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
@@ -82,3 +95,10 @@ install(TARGETS Test
 if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(Test)
 endif()
+
+# Опционально: добавить кастомную цель для запуска тестов
+add_custom_target(run_tests
+    COMMAND Test
+    DEPENDS Test
+    COMMENT "Running unit tests"
+)
