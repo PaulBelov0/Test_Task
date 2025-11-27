@@ -66,7 +66,6 @@ bool ArchiveManager::processZip()
     m_file.setFileName(m_path);
     if (!m_file.open(QIODevice::ReadOnly))
     {
-        qWarning() << "Cannot open file:" << m_path;
         emit onErrorOccured("Файл не существует!");
         return false;
     }
@@ -154,6 +153,7 @@ bool ArchiveManager::processZip()
 
     emit onProgressGuiChanged(fileSize, fileSize);
     m_file.close();
+    m_isScanFinished = true;
     return found;
 }
 
@@ -173,9 +173,12 @@ QDateTime ArchiveManager::convertDosDateTime(uint16_t modDate, uint16_t modTime)
 
 bool ArchiveManager::saveFiles(const QString& saveDirPath, const QStringList& selectedFiles)
 {
+    if (!m_isScanFinished)
+        return false;
+
     if (m_fileMap.isEmpty() || selectedFiles.isEmpty())
     {
-        qDebug() << "No files to archive.";
+        emit onErrorOccured("Не выбрано ни одного файла");
         return false;
     }
 
@@ -184,7 +187,6 @@ bool ArchiveManager::saveFiles(const QString& saveDirPath, const QStringList& se
     QTemporaryDir tempDir(m_saveDir + m_folderName);
     if (!tempDir.isValid())
     {
-        qWarning() << "Failed to create temporary directory.";
         return false;
     }
 

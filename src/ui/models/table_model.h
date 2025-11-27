@@ -33,6 +33,8 @@ public:
 
     void setAllItemsChecked();
 
+    bool isAllFilesChecked() { return m_isAllFilesSelected; };
+
 public slots:
     void addFileWithMetadata(const QString& filePath, quint64 fileSize, QDateTime timestamp);
     void clearFiles();
@@ -51,6 +53,8 @@ private:
     QSet<QString> m_keepFiles;
     QHash<QString, quint64> m_fileSizes;      // filePath -> size
     QHash<QString, QDateTime> m_fileTimestamps;  // filePath -> timestamp
+
+    bool m_isAllFilesSelected = false;
 };
 
 #endif // TABLE_MODEL_H

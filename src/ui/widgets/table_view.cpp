@@ -13,13 +13,23 @@ TableView::TableView(QWidget* parent)
             [this](const QPoint &pos) {
                 QModelIndex index = indexAt(pos);
                 if (index.isValid()) {
-                    qDebug() << "Right click on row:" << index.row();
 
-                    QMenu menu;
-                    menu.addAction("Выбрать все", [this, index]() {
-                        tableModel()->setAllItemsChecked();
-                    });
-                    menu.exec(viewport()->mapToGlobal(pos));
+                    if (tableModel()->isAllFilesChecked())
+                    {
+                        QMenu menu;
+                        menu.addAction("Очистить выбор", [this, index]() {
+                            tableModel()->setAllItemsChecked();
+                        });
+                        menu.exec(viewport()->mapToGlobal(pos));
+                    }
+                    else
+                    {
+                        QMenu menu;
+                        menu.addAction("Выбрать все", [this, index]() {
+                            tableModel()->setAllItemsChecked();
+                        });
+                        menu.exec(viewport()->mapToGlobal(pos));
+                    }
                 }
             });
 }

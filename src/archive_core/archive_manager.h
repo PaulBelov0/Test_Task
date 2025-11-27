@@ -103,6 +103,7 @@ private:
     inline QDateTime convertDosDateTime(uint16_t modDate, uint16_t modTime);
 
     bool m_shouldStop = false;
+    bool m_isScanFinished = false;
 
     QString m_targetWord;
     QString m_path;

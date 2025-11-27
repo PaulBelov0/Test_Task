@@ -120,8 +120,10 @@ void ArchiverPipeline::setPathToSave(const QString& path)
         m_archive->setSaveDir(path);
 }
 
-void ArchiverPipeline::saveFiles(const QString& path, const QStringList& selectedFiles)
+bool ArchiverPipeline::saveFiles(const QString& path, const QStringList& selectedFiles)
 {
     if (checkPathToSave(path))
-        m_archive->saveFiles(path, selectedFiles);
+        return m_archive->saveFiles(path, selectedFiles);
+
+    return false;
 }

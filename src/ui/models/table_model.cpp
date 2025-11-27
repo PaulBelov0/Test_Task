@@ -169,9 +169,17 @@ void TableModel::setAllItemsChecked()
 
     m_keepFiles.clear();
 
-    for (const QString& filePath : m_files)
+    if (!m_isAllFilesSelected)
     {
-        m_keepFiles.insert(filePath);
+        for (const QString& filePath : m_files)
+        {
+            m_keepFiles.insert(filePath);
+        }
+        m_isAllFilesSelected = true;
+    }
+    else
+    {
+        m_isAllFilesSelected = false;
     }
 
     endResetModel();
