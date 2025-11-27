@@ -20,7 +20,6 @@ private slots:
 
 signals:
     void fileDoubleClicked(const QString& filePath);
-    void mousePressEvent(QMouseEvent* event);
 };
 
 #endif // TABLE_VIEW_H
